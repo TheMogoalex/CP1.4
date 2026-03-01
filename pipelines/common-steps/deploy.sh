@@ -28,4 +28,5 @@ sam deploy \
   --no-confirm-changeset \
   --force-upload \
   --no-fail-on-empty-changeset \
-  --no-progressbar
+  --no-progressbar \
+  --parameter-overrides Stage="$ENVIRONMENT"
