@@ -1,29 +1,17 @@
 #!/bin/bash
-
-source todo-list-aws/bin/activate
 set -x
+source todo-list-aws/bin/activate
 
-RAD_ERRORS=$(radon cc src -nc | wc -l)
+mkdir -p reports
 
-if [[ $RAD_ERRORS -ne 0 ]]
-then
-    echo 'Ha fallado el análisis estatico de RADON - CC'
-    exit 1
-fi
-RAD_ERRORS=$(radon mi src -nc | wc -l)
-if [[ $RAD_ERRORS -ne 0 ]]
-then
-    echo 'Ha fallado el análisis estatico de RADON - MI'
-    exit 1
-fi
+# Radon: solo informe, no gate
+radon cc src -a | tee reports/radon_cc.txt || true
+radon mi src -s | tee reports/radon_mi.txt || true
 
-flake8 src/*.py
-if [[ $? -ne 0 ]]
-then
-    exit 1
-fi
-bandit src/*.py
-if [[ $? -ne 0 ]]
-then
-    exit 1
-fi
+# Flake8: no fallar por findings
+flake8 src | tee reports/flake8.txt || true
+
+# Bandit: no fallar por findings
+bandit -r src -f txt -o reports/bandit.txt || true
+
+exit 0

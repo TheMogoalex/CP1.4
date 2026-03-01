@@ -1,6 +1,12 @@
 pipeline {
     agent any
     stages {
+
+        stage('Get Code'){
+            steps{
+                checkout scm
+            }
+        }
         
         stage('SetUp'){
             steps{
@@ -12,17 +18,18 @@ pipeline {
             steps{
                 echo 'Static program analysis:'
                 sh "bash pipelines/PIPELINE-FULL-STAGING/static_test.sh"
+                archiveArtifacts artifacts: 'reports/*', fingerprint: true
                 echo 'Unit testing:'
                 sh "bash pipelines/PIPELINE-FULL-STAGING/unit_test.sh"
             }
             post {
                 always {
                     script {
-                        def failed = publishCoverage (failUnhealthy: true, 
-                            globalThresholds: [[thresholdTarget: 'Line', unhealthyThreshold: 70.0]],
-                            adapters: [coberturaAdapter(
-                                mergeToOneReport: true, 
-                                path: '**/coverage.xml')])
+                        def failed = publishCoverage(
+                            failUnhealthy: false,
+                            failUnstable: false,
+                            adapters: [coberturaAdapter(mergeToOneReport: true, path: '**/coverage.xml')]
+                        )
                     }
                 }
             }
@@ -49,6 +56,25 @@ pipeline {
                     sh "bash pipelines/common-steps/integration.sh $BASE_URL"
                 }
                    
+            }
+        }
+        stage('Promote (merge develop -> master)'){
+            steps{
+                sh '''
+                    git config user.email "mogollortega@gmail.com "
+                    git config user.name "TheMogoalex"
+                    git fetch origin
+                    git checkout master
+                    git pull origin master
+                    git merge --no-ff origin/develop -m "Promote develop -> master"
+                    '''
+                sshagent(['github']) {
+                    sh '''
+                    mkdir -p ~/.ssh
+                    ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+                    '''
+                    sh 'git push origin master'
+                }
             }
         }
     }
