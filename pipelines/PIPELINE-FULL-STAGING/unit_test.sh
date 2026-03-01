@@ -1,12 +1,19 @@
 #!/bin/bash
+set -euxo pipefail
 
 source todo-list-aws/bin/activate
-set -x
 export PYTHONPATH="${PYTHONPATH}:$(pwd)"
-echo "PYTHONPATH: $PYTHONPATH"
 export DYNAMODB_TABLE=todoUnitTestsTable
-python test/unit/TestToDo.py
-pip show coverage
-coverage run --include=src/todoList.py test/unit/TestToDo.py
+
+mkdir -p reports
+
+# Instala generador de XML JUnit
+pip install -q unittest-xml-reporting
+
+# Ejecuta tests generando XML para Jenkins
+python -m xmlrunner discover -s test/unit -p "Test*.py" -o reports
+
+# Coverage
+coverage run --include=src/todoList.py -m unittest discover test/unit
 coverage report
-coverage xml
+coverage xml -o coverage.xml

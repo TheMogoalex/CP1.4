@@ -29,9 +29,10 @@ pipeline {
             }
             post {
                 always {
-                        archiveArtifacts artifacts: 'coverage.xml, reports/*', fingerprint: true, allowEmptyArchive: true
-                    }
-                }            
+                    junit 'reports/*.xml'
+                    archiveArtifacts artifacts: 'coverage.xml, reports/*', fingerprint: true, allowEmptyArchive: true
+                }
+            }            
         }
        stage('Build') {
             steps{
