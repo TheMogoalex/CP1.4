@@ -2,7 +2,7 @@
 import warnings
 import unittest
 import boto3
-from moto import mock_dynamodb2
+from moto import mock_aws as mock_dynamodb2
 import sys
 import os
 import json
