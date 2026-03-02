@@ -71,9 +71,10 @@ pipeline {
         always {
           archiveArtifacts artifacts: 'reports/*.xml', allowEmptyArchive: true
         }
+      }
     }
+
   }
 
   post { always { cleanWs() } }
-}
 }
