@@ -13,6 +13,7 @@ pipeline {
     stage('Get Code') {
       agent any
       steps {
+        deleteDir()
         sh 'whoami && hostname'
         checkout scm
         stash name: 'ws', includes: '**/*'
