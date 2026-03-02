@@ -16,7 +16,18 @@ pipeline {
         deleteDir()
         sh 'whoami && hostname'
         checkout scm
+
+        // Descargar configuración de entorno (production)
+        sshagent(['github']) {
+          sh '''
+            rm -rf configrepo
+            git clone --depth 1 --branch staging https://github.com/TheMogoalex/todo-list-aws-config.git configrepo
+            cp configrepo/samconfig.toml samconfig.toml
+          '''
+        }
+
         stash name: 'ws', includes: '**/*'
+        stash name: 'samcfg', includes: 'samconfig.toml'
       }
     }
 
@@ -25,6 +36,7 @@ pipeline {
       steps {
         sh 'whoami && hostname'
         unstash 'ws'
+        unstash 'samcfg'
         checkout scm
         sh 'bash pipelines/PIPELINE-FULL-PRODUCTION/setup.sh'
         stash name: 'ws', includes: '**/*'
@@ -36,6 +48,7 @@ pipeline {
       steps {
         sh 'whoami && hostname'
         unstash 'ws'
+        unstash 'samcfg'
         checkout scm
         sh 'bash pipelines/common-steps/build.sh'
       }
@@ -46,6 +59,7 @@ pipeline {
       steps {
         sh 'whoami && hostname'
         unstash 'ws'
+        unstash 'samcfg'
         checkout scm
         sh 'bash pipelines/common-steps/deploy.sh'
       }
