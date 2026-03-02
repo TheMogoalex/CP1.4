@@ -1,0 +1,119 @@
+pipeline {
+  agent none
+  options { timestamps() }
+
+  environment {
+    ENVIRONMENT = "staging"
+    AWS_REGION  = "us-east-1"
+    STACK_NAME  = "cp14-mogo-staging"
+  }
+
+  stages {
+
+    stage('Get Code') {
+      agent any
+      steps {
+        sh 'whoami && hostname'
+        checkout scm
+        stash name: 'ws', includes: '**/*'
+      }
+    }
+
+    stage('SetUp') {
+      agent any
+      steps {
+        sh 'whoami && hostname'
+        unstash 'ws'
+        sh 'bash pipelines/PIPELINE-FULL-STAGING/setup.sh'
+        stash name: 'ws', includes: '**/*'
+      }
+    }
+
+    stage('Static Test (agent static)') {
+      agent { label 'static' }
+      steps {
+        sh 'whoami && hostname'
+        unstash 'ws'
+        sh 'bash pipelines/PIPELINE-FULL-STAGING/static_test.sh'
+        archiveArtifacts artifacts: 'reports/*', allowEmptyArchive: true
+      }
+    }
+
+    stage('Unit Test') {
+      agent any
+      steps {
+        sh 'whoami && hostname'
+        unstash 'ws'
+        sh 'bash pipelines/PIPELINE-FULL-STAGING/unit_test.sh'
+      }
+      post {
+        always {
+          junit 'reports/*.xml'
+          archiveArtifacts artifacts: 'coverage.xml, reports/*', allowEmptyArchive: true
+        }
+      }
+    }
+
+    stage('Build') {
+      agent any
+      steps {
+        sh 'whoami && hostname'
+        unstash 'ws'
+        sh 'bash pipelines/common-steps/build.sh'
+      }
+    }
+
+    stage('Deploy (staging)') {
+      agent any
+      steps {
+        sh 'whoami && hostname'
+        unstash 'ws'
+        sh 'bash pipelines/common-steps/deploy.sh'
+      }
+    }
+
+    stage('Rest Test after deploy (agent rest)') {
+      agent { label 'rest' }
+      steps {
+        sh 'whoami && hostname'
+        unstash 'ws'
+        script {
+          def BASE_URL = sh(
+            script: "aws cloudformation describe-stacks --stack-name ${env.STACK_NAME} --region ${env.AWS_REGION} --query 'Stacks[0].Outputs[?OutputKey==`BaseUrlApi`].OutputValue' --output text",
+            returnStdout: true
+          ).trim()
+
+          echo "BASE_URL=${BASE_URL}"
+          sh "bash pipelines/common-steps/integration.sh ${BASE_URL}"
+        }
+      }
+    }
+
+    stage('Promote (merge develop -> master)') {
+      agent any
+      steps {
+        sh 'whoami && hostname'
+        unstash 'ws'
+        sh '''
+          git config user.email "mogollortega@gmail.com"
+          git config user.name "TheMogoalex"
+          git fetch origin
+          git checkout master
+          git pull origin master
+          git merge --no-ff origin/develop -m "Promote develop -> master"
+        '''
+        sshagent(['github']) {
+          sh '''
+            set -e
+            mkdir -p ~/.ssh
+            ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+            git remote set-url origin git@github.com:TheMogoalex/CP1.4.git
+            git push origin master
+          '''
+        }
+      }
+    }
+  }
+
+  post { always { cleanWs() } }
+}
