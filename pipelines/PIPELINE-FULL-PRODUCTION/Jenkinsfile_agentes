@@ -1,0 +1,78 @@
+pipeline {
+  agent none
+  options { timestamps(); skipDefaultCheckout(true) }
+
+  environment {
+    ENVIRONMENT = "production"
+    AWS_REGION  = "us-east-1"
+    STACK_NAME  = "cp14-mogo-production"
+  }
+
+  stages {
+
+    stage('Get Code') {
+      agent any
+      steps {
+        deleteDir()
+        sh 'whoami && hostname'
+        checkout scm
+        stash name: 'ws', includes: '**/*'
+      }
+    }
+
+    stage('SetUp') {
+      agent any
+      steps {
+        sh 'whoami && hostname'
+        unstash 'ws'
+        checkout scm
+        sh 'bash pipelines/PIPELINE-FULL-PRODUCTION/setup.sh'
+        stash name: 'ws', includes: '**/*'
+      }
+    }
+
+    stage('Build') {
+      agent any
+      steps {
+        sh 'whoami && hostname'
+        unstash 'ws'
+        checkout scm
+        sh 'bash pipelines/common-steps/build.sh'
+      }
+    }
+
+    stage('Deploy (production)') {
+      agent any
+      steps {
+        sh 'whoami && hostname'
+        unstash 'ws'
+        checkout scm
+        sh 'bash pipelines/common-steps/deploy.sh'
+      }
+    }
+
+    stage('Rest Test (read-only) (agent rest)') {
+      agent { label 'rest' }
+      steps {
+        sh 'whoami && hostname'
+        unstash 'ws'
+        checkout scm
+        script {
+          def BASE_URL = sh(
+            script: "aws cloudformation describe-stacks --stack-name ${env.STACK_NAME} --region ${env.AWS_REGION} --query 'Stacks[0].Outputs[?OutputKey==`BaseUrlApi`].OutputValue' --output text",
+            returnStdout: true
+          ).trim()
+
+          echo "BASE_URL=${BASE_URL}"
+          sh "bash pipelines/common-steps/integration_readonly.sh ${BASE_URL}"
+        }
+      }
+      post {
+        always {
+          archiveArtifacts artifacts: 'reports/*.xml', allowEmptyArchive: true
+        }
+    }
+  }
+
+  post { always { cleanWs() } }
+}

@@ -15,8 +15,8 @@ export DYNAMODB_TABLE=todoUnitTestsTable
 
 mkdir -p reports
 
-# Genera JUnit XML para Jenkins (unittest -> xml)
-pip install -q unittest-xml-reporting
+source todo-list-aws/bin/activate
+python -m pip install --no-cache-dir -q unittest-xml-reporting
 python -m xmlrunner discover -s test/unit -p "Test*.py" -o reports
 
 # Coverage (sin romper nada)
