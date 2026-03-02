@@ -16,7 +16,19 @@ pipeline {
         deleteDir()
         sh 'whoami && hostname'
         checkout scm
+
+        // Descargar configuración de entorno (staging)
+        sshagent(['github']) {
+        sh '''
+          rm -rf configrepo
+          git clone --depth 1 --branch staging https://github.com/TheMogoalex/todo-list-aws-config.git configrepo
+          cp configrepo/samconfig.toml samconfig.toml
+        '''
+        }
+
+        // Guardamos ambos: código + config
         stash name: 'ws', includes: '**/*'
+        stash name: 'samcfg', includes: 'samconfig.toml'
       }
     }
 
@@ -26,6 +38,7 @@ pipeline {
         sh 'whoami && hostname'
         unstash 'ws'
         checkout scm
+        unstash 'samcfg'
         sh 'bash pipelines/PIPELINE-FULL-STAGING/setup.sh'
         stash name: 'ws', includes: '**/*'
       }
@@ -64,6 +77,7 @@ pipeline {
       steps {
         sh 'whoami && hostname'
         unstash 'ws'
+        unstash 'samcfg'
         checkout scm
         sh 'bash pipelines/common-steps/build.sh'
       }
@@ -74,6 +88,7 @@ pipeline {
       steps {
         sh 'whoami && hostname'
         unstash 'ws'
+        unstash 'samcfg'
         checkout scm
         sh 'env | egrep -i "sam|s3|bucket" || true'
         sh 'bash pipelines/common-steps/deploy.sh'
@@ -85,6 +100,7 @@ pipeline {
       steps {
         sh 'whoami && hostname'
         unstash 'ws'
+        unstash 'samcfg'
         checkout scm
         script {
           def BASE_URL = sh(
@@ -103,9 +119,12 @@ pipeline {
       steps {
         sh 'whoami && hostname'
         unstash 'ws'
+        unstash 'samcfg'
         sh '''
           git config user.email "mogollortega@gmail.com"
           git config user.name "TheMogoalex"
+          git reset --hard
+          git clean -fd
           git fetch origin
           git checkout master
           git pull origin master

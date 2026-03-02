@@ -1,13 +1,13 @@
 version = 0.1
 
-[staging.deploy.parameters]
-stack_name = "cp14-mogo-staging"
+[production.deploy.parameters]
+stack_name = "cp14-mogo-production"
 region = "us-east-1"
 capabilities = "CAPABILITY_IAM"
 confirm_changeset = false
 resolve_s3 = true
-s3_prefix = "cp14-mogo-staging"
-parameter_overrides = "Stage=staging"
+s3_prefix = "cp14-mogo-production"
+parameter_overrides = "Stage=production"
 no_fail_on_empty_changeset = true
 force_upload = true
 no_progressbar = true
