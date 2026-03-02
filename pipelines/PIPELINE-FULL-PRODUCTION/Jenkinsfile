@@ -41,6 +41,12 @@ pipeline {
                     sh "bash pipelines/common-steps/integration_readonly.sh $BASE_URL"
                 }
             }
+            post {
+                always {
+                    junit testResults: 'reports/integration-readonly-junit.xml', allowEmptyResults: true
+                    archiveArtifacts artifacts: 'reports/**', allowEmptyArchive: true
+                }
+  }
         }
     }
     post { 
