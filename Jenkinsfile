@@ -46,6 +46,10 @@ pipeline {
   }
 
   post {
-    always { node { cleanWs() } }
+    always {
+        node('built-in') {
+            cleanWs()
+        }
+    }
   }
 }
