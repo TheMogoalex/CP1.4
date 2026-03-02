@@ -19,6 +19,8 @@ if [[ ! -f "$TEMPLATE" ]]; then
   TEMPLATE="template.yaml"
 fi
 
+rm -f samconfig.toml
+
 sam deploy \
   --template-file "$TEMPLATE" \
   --stack-name "$STACK_NAME" \

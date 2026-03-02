@@ -75,6 +75,7 @@ pipeline {
         sh 'whoami && hostname'
         unstash 'ws'
         checkout scm
+        sh 'env | egrep -i "sam|s3|bucket" || true'
         sh 'bash pipelines/common-steps/deploy.sh'
       }
     }
