@@ -63,6 +63,10 @@ pipeline {
           sh "bash pipelines/common-steps/integration_readonly.sh ${BASE_URL}"
         }
       }
+      post {
+        always {
+          archiveArtifacts artifacts: 'reports/*.xml', allowEmptyArchive: true
+        }
     }
   }
 

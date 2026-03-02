@@ -13,6 +13,7 @@ pipeline {
     stage('Get Code') {
       agent any
       steps {
+        deleteDir()
         sh 'whoami && hostname'
         checkout scm
         stash name: 'ws', includes: '**/*'
@@ -48,7 +49,7 @@ pipeline {
       }
       post {
         always {
-          junit 'reports/*.xml'
+          junit testResults: 'reports/*.xml', allowEmptyResults: true
           archiveArtifacts artifacts: 'coverage.xml, reports/*', allowEmptyArchive: true
         }
       }
