@@ -21,7 +21,7 @@ pipeline {
         sshagent(['github']) {
           sh '''
             rm -rf configrepo
-            git clone --depth 1 --branch production git@github.com:TheMogoalex/todo-list-aws-config.git configrepo
+            git clone --depth 1 --branch staging https://github.com/TheMogoalex/todo-list-aws-config.git configrepo
             cp configrepo/samconfig.toml samconfig.toml
           '''
         }
